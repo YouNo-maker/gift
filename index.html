@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <!-- 微信优化 -->
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>生日快乐!</title>
+    <link type="text/css" rel="stylesheet" href="./css/default.css">
+    <script type="text/javascript" src="./css/jquery.min.js" onerror="console.error('jQuery加载失败')"></script>
+    <script type="text/javascript" src="./css/jscex.min.js" onerror="console.error('Jscex加载失败')"></script>
+    <script type="text/javascript" src="./css/jscex-parser.js" onerror="console.error('Jscex-parser加载失败')"></script>
+    <script type="text/javascript" src="./css/jscex-jit.js" onerror="console.error('Jscex-jit加载失败')"></script>
+    <script type="text/javascript" src="./css/jscex-builderbase.min.js"
+        onerror="console.error('Jscex-builderbase加载失败')"></script>
+    <script type="text/javascript" src="./css/jscex-async.min.js" onerror="console.error('Jscex-async加载失败')"></script>
+    <script type="text/javascript" src="./css/jscex-async-powerpack.min.js"
+        onerror="console.error('Jscex-async-powerpack加载失败')"></script>
+    <script type="text/javascript" src="./css/functions.js" charset="utf-8"
+        onerror="console.error('functions.js加载失败')"></script>
+    <script type="text/javascript" src="./css/love.js" charset="utf-8" onerror="console.error('love.js加载失败')"></script>
+    <style type="text/css">
+        /* CSS 样式 */
+        .STYLE1 {
+            color: #666666
+        }
+    </style>
+    <style>
+        /* 便签墙样式 */
+        #board {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            overflow: hidden;
+            z-index: 10000;
+            display: none;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 25%, #fff0f5 50%, #ffeef0 75%, #fff5f5 100%);
+            background-size: 400% 400%;
+            animation: gentleGradient 15s ease infinite;
+        }
+
+        @keyframes gentleGradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        #board.active {
+            display: block;
+        }
+
+        body.has-maximized-card {
+            overflow: hidden;
+        }
+
+        body.is-mobile {
+            overflow-y: auto;
+        }
+
+        body.is-mobile #board {
+            height: auto;
+            min-height: 100dvh;
+        }
+
+        .card {
+            position: absolute;
+            width: 220px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            opacity: 0;
+            transform-origin: center;
+            transition: transform 0.35s ease, opacity 0.35s ease, left 0.35s ease,
+                top 0.35s ease, width 0.35s ease, height 0.35s ease,
+                border-radius 0.35s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.dragging {
+            transition: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .card.maximized {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            border-radius: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: none;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.03);
+            cursor: grab;
+            user-select: none;
+            touch-action: pan-y;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card-header.dragging {
+            cursor: grabbing;
+        }
+
+        .window-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .window-controls .control {
+            position: relative;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: #ccc;
+            cursor: pointer;
+            outline: none;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .window-controls .control.close {
+            background: #ff5f57;
+            border-color: #e0443e;
+        }
+
+        .window-controls .control.minimize {
+            background: #febb2e;
+            border-color: #dea123;
+        }
+
+        .window-controls .control.maximize {
+            background: #28c840;
+            border-color: #1aab2c;
+        }
+
+        .window-controls .control::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .card-header:hover .window-controls .control::after {
+            opacity: 0.8;
+        }
+
+        .window-controls .control.close::after {
+            content: '×';
+            width: auto;
+            height: auto;
+            background: none;
+            font-size: 10px;
+            line-height: 1;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.7);
+        }
+
+        .window-controls .control.minimize::after {
+            width: 6px;
+            height: 2px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .window-controls .control.maximize::after {
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(45deg,
+                    rgba(0, 0, 0, 0.6) 0%,
+                    rgba(0, 0, 0, 0.6) 45%,
+                    transparent 45%,
+                    transparent 55%,
+                    rgba(0, 0, 0, 0.6) 55%,
+                    rgba(0, 0, 0, 0.6) 100%);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.55);
+            padding-left: 10px;
+            flex: 1;
+        }
+
+        .card-body {
+            padding: 16px;
+            font-size: 16px;
+            line-height: 1.6;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.7);
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            white-space: normal;
+        }
+
+        .card.maximized {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card.maximized .card-title {
+            display: none;
+        }
+
+        .card.maximized .card-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            padding: clamp(32px, min(10vw, 10vh), 128px);
+            padding-top: clamp(72px, min(14vw, 14vh), 192px);
+            font-size: clamp(48px, min(18vw, 18vh), 200px);
+            line-height: 1.05;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                width: 180px;
+                border-radius: 10px;
+            }
+
+            .card-body {
+                padding: 14px;
+                font-size: 14px;
+            }
+
+            .card-title {
+                font-size: 12px;
+            }
+
+            .card-header {
+                padding: 12px 14px;
+                min-height: 44px;
+            }
+
+            .window-controls {
+                gap: 8px;
+            }
+
+            .window-controls .control {
+                width: 16px;
+                height: 16px;
+                min-width: 16px;
+                min-height: 16px;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .window-controls .control.close::after {
+                font-size: 12px;
+            }
+
+            .window-controls .control.minimize::after {
+                width: 8px;
+                height: 3px;
+            }
+
+            .window-controls .control.maximize::after {
+                width: 8px;
+                height: 8px;
+            }
+
+            .card.maximized .card-body {
+                padding: clamp(24px, min(8vw, 8vh), 64px);
+                padding-top: clamp(60px, min(12vw, 12vh), 120px);
+                font-size: clamp(36px, min(16vw, 16vh), 160px);
+            }
+
+            #startButton,
+            #nextButton {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            #startButton:active,
+            #nextButton:active {
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                width: 160px;
+                border-radius: 8px;
+            }
+
+            .card-body {
+                padding: 12px;
+                font-size: 13px;
+            }
+
+            .card-title {
+                font-size: 11px;
+            }
+
+            .card-header {
+                padding: 10px 12px;
+            }
+
+            .window-controls .control {
+                width: 18px;
+                height: 18px;
+                min-width: 18px;
+                min-height: 18px;
+            }
+
+            .card.maximized .card-body {
+                padding: clamp(20px, min(6vw, 6vh), 48px);
+                padding-top: clamp(50px, min(10vw, 10vh), 100px);
+                font-size: clamp(32px, min(14vw, 14vh), 140px);
+            }
+        }
+    </style>
+    <style>
+        /* 生日蛋糕样式 */
+        #startButton {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10001;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: transparent;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #startButton:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        #startButton:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        /* 新按钮样式 */
+        #nextButton {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10002;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: transparent;
+            padding: 0;
+            display: none;
+            opacity: 0;
+        }
+
+        #nextButton.show {
+            display: block;
+            animation: fadeInButton 1s ease forwards;
+        }
+
+        @keyframes fadeInButton {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        #nextButton:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        #nextButton:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        #nextButton img {
+            width: 150px;
+            height: auto;
+            display: block;
+        }
+
+        /* 箭头样式 */
+        #arrowToButton {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10001;
+            display: none;
+            opacity: 0;
+            font-size: 60px;
+            color: #ff6b9d;
+            animation: bounceArrow 1s ease infinite;
+        }
+
+        #arrowToButton.show {
+            display: block;
+            animation: fadeInArrow 1s ease forwards, bounceArrow 1s ease infinite 1s;
+        }
+
+        @keyframes fadeInArrow {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        @keyframes bounceArrow {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%);
+            }
+
+            50% {
+                transform: translate(-50%, -40%);
+            }
+        }
+
+        /* 蛋糕容器 */
+        .cake-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* 蛋糕图片 */
+        .cake-image {
+            max-width: 300px;
+            height: auto;
+            display: block;
+        }
+
+        /* 文字提示 */
+        .cake-text {
+            margin-top: 20px;
+            color: #FF0000;
+            font-size: 18px;
+            font-weight: bold;
+            white-space: nowrap;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 文字样式 - 与生日蛋糕风格统一 */
+        .text-content {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        /* 颜色定义 - 适配米白色背景，增强对比度 */
+        .text-green {
+            color: #2d8659;
+            text-shadow: 0 2px 6px rgba(45, 134, 89, 0.6), 0 0 10px rgba(45, 134, 89, 0.3);
+            font-weight: 500;
+        }
+
+        .text-pink {
+            color: #c2185b;
+            text-shadow: 0 2px 6px rgba(194, 24, 91, 0.6), 0 0 10px rgba(194, 24, 91, 0.3);
+            font-weight: 500;
+        }
+
+        .text-yellow {
+            color: #d97706;
+            text-shadow: 0 2px 6px rgba(217, 119, 6, 0.6), 0 0 10px rgba(217, 119, 6, 0.3);
+            font-weight: 500;
+        }
+
+        /* 标题样式 */
+        .text-title {
+            font-size: 1.8em;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+
+        .text-title h1 {
+            margin: 0;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+
+        /* 强调文字 */
+        .text-emphasis {
+            font-size: 1.3em;
+            font-weight: 500;
+            animation: gentle-glow 2.5s ease-in-out infinite;
+        }
+
+        /* 祝福文字样式 */
+        .text-blessing {
+            font-size: 1.2em;
+        }
+
+        /* 签名样式 */
+        .signature {
+            font-size: 0.95em;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        /* 文字样式 - typewriter过程中文字正常显示 */
+        .say {
+            transition: all 0.3s ease;
+        }
+
+        /* 确保文字在typewriter过程中可见 */
+        #code .say {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        /* 柔和发光动画 */
+        @keyframes gentle-glow {
+
+            0%,
+            100% {
+                text-shadow: 0 2px 8px rgba(168, 230, 207, 0.4),
+                    0 0 20px rgba(168, 230, 207, 0.2);
+            }
+
+            50% {
+                text-shadow: 0 2px 12px rgba(168, 230, 207, 0.6),
+                    0 0 30px rgba(168, 230, 207, 0.4);
+            }
+        }
+
+        /* typewriter光标闪烁动画 */
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 0.6;
+            }
+
+            51%,
+            100% {
+                opacity: 0.2;
+            }
+        }
+
+        /* 优化浮动动画 */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            33% {
+                transform: translateY(-8px) rotate(1deg);
+            }
+
+            66% {
+                transform: translateY(-12px) rotate(-1deg);
+            }
+        }
+
+        .cake-container {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* 背景优化 */
+        body {
+            background: #ffe;
+        }
+
+        #wrap {
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <audio id="bgMusic" loop preload="auto">
+        <source src="music/杨和苏KeyNG - 很久很久.flac" type="audio/flac" />
+        <source src="music/love.mp3" type="audio/mpeg" />
+    </audio>
+    <button id="startButton">
+        <div class="cake-container">
+            <img src="生日蛋糕.png" alt="按钮" class="cake-image" onerror="this.style.display='none';" />
+        </div>
+    </button>
+    <div id="arrowToButton">↓</div>
+    <button id="nextButton">
+        <img src="css/v2-9c3818e851509805a4eb661389797abb_720w.jpg" alt="点击继续" onerror="this.style.display='none';" />
+    </button>
+    <div id="main">
+        <div id="wrap">
+            <div id="text">
+                <div id="code">
+                    <div class="text-content">
+                        <span class="say text-title text-green">
+                            <h1>原来我们认识在很久很久以前..</h1>
+                        </span><br><br>
+                        <span class="say text-pink text-blessing">祝你在接下来的日子里</span><br> <br>
+                        <span class="say text-yellow text-blessing">科科成绩拿第一</span><br><br>
+                        <span class="say text-green text-blessing">想吃就吃不长肉</span><br><br>
+                        <span class="say text-pink text-blessing">想喝就喝没负担</span><br><br>
+                        <span class="say text-yellow text-blessing">随便熬夜不长痘</span><br><br>
+                        <span class="say text-green text-emphasis text-blessing">生日快乐林诗琬</span><br><br>
+                        <span class="say text-pink signature"><span class="space"></span> -- YouNo
+                            2025.11.15--</span><br>
+                        <span class="say text-title text-yellow">
+                            <h1>希望我们相识到很久很久以后..</h1>
+                        </span><br>
+                    </div>
+                </div>
+            </div>
+            <div id="clock-box">
+                <!-- <span class="STYLE1"></span><font color="#33CC00">距离我喜欢你，</font>
+<span class="STYLE1">已经是……</span> -->
+                <span class="STYLE1"></span>
+                <font color="#33CC00"></font>
+                <span class="STYLE1"></span>
+                <!-- <div id="clock"></div> -->
+            </div>
+            <canvas id="canvas" width="1100" height="680"></canvas>
+        </div>
+
+    </div>
+    <div id="board"></div>
+
+    <script>
+        // 资源路径处理函数（处理中文文件名，兼容微信）
+        function encodeResourcePath(path) {
+            try {
+                if (!path) return path;
+                // 分离路径和文件名
+                var parts = path.split('/');
+                var filename = parts.pop();
+                var dir = parts.join('/');
+                // 对文件名进行编码（保留空格，只编码中文字符）
+                var encodedFilename = encodeURIComponent(filename);
+                // 恢复空格（微信中空格通常不需要编码）
+                encodedFilename = encodedFilename.replace(/%20/g, ' ');
+                return dir ? dir + '/' + encodedFilename : encodedFilename;
+            } catch (e) {
+                console.log('路径编码错误:', e);
+                return path;
+            }
+        }
+
+        // 优化音频加载（处理微信环境）
+        (function () {
+            var audio = document.getElementById('bgMusic');
+            if (!audio) return;
+
+            // 检测是否在微信环境
+            var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
+            // 微信环境下，尝试修复音频源路径
+            if (isWeChat) {
+                var sources = audio.querySelectorAll('source');
+                sources.forEach(function (source) {
+                    var originalSrc = source.getAttribute('src');
+                    if (originalSrc && /[\u4e00-\u9fa5]/.test(originalSrc)) {
+                        // 包含中文，尝试编码
+                        try {
+                            var encodedSrc = encodeResourcePath(originalSrc);
+                            source.setAttribute('src', encodedSrc);
+                        } catch (e) {
+                            console.log('路径编码失败，使用原路径');
+                        }
+                    }
+                });
+                // 重新加载音频
+                audio.load();
+            }
+
+            // 尝试自动播放音乐
+            var playPromise = audio.play();
+
+            if (playPromise !== undefined) {
+                playPromise.catch(function (error) {
+                    // 自动播放被阻止，等待用户交互
+                    console.log('自动播放被阻止，等待用户交互');
+
+                    // 在用户第一次点击时播放
+                    var playOnClick = function () {
+                        if (audio.readyState >= 2) {
+                            audio.play().catch(function (err) {
+                                console.log('播放失败:', err);
+                            });
+                        }
+                        document.removeEventListener('click', playOnClick);
+                        document.removeEventListener('touchstart', playOnClick);
+                    };
+
+                    document.addEventListener('click', playOnClick, { once: true });
+                    document.addEventListener('touchstart', playOnClick, { once: true });
+                });
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var canvas = $('#canvas');
+
+            if (!canvas[0].getContext) {
+                $("#error").show();
+                return false;
+            }
+
+            var width = canvas.width();
+            var height = canvas.height();
+            canvas.attr("width", width);
+            canvas.attr("height", height);
+            var opts = {
+                seed: {
+                    x: width / 2 - 20,
+                    color: "rgb(255, 100, 0)",
+                    scale: 2
+                },
+                branch: [
+                    [535, 680, 570, 250, 500, 200, 30, 100, [
+                        [540, 500, 455, 417, 340, 400, 13, 100, [
+                            [450, 435, 434, 430, 394, 395, 2, 40]
+                        ]],
+                        [550, 445, 600, 356, 680, 345, 12, 100, [
+                            [578, 400, 648, 409, 661, 426, 3, 80]
+                        ]],
+                        [539, 281, 537, 248, 534, 217, 3, 40],
+                        [546, 397, 413, 247, 328, 244, 9, 80, [
+                            [427, 286, 383, 253, 371, 205, 2, 40],
+                            [498, 345, 435, 315, 395, 330, 4, 60]
+                        ]],
+                        [546, 357, 608, 252, 678, 221, 6, 100, [
+                            [590, 293, 646, 277, 648, 271, 2, 80]
+                        ]]
+                    ]]
+                ],
+                bloom: {
+                    num: 700,
+                    width: 1080,
+                    height: 650,
+                },
+                footer: {
+                    width: 1200,
+                    height: 5,
+                    speed: 10,
+                }
+            }
+
+            var tree = new Tree(canvas[0], width, height, opts);
+            var seed = tree.seed;
+            var foot = tree.footer;
+            var hold = 1;
+
+            canvas.click(function (e) {
+                // 尝试播放音频（如果还没播放）
+                var audio = document.getElementById('bgMusic');
+                if (audio.paused) {
+                    audio.play().catch(function (err) {
+                        console.log('播放失败:', err);
+                    });
+                }
+
+                var offset = canvas.offset(), x, y;
+                x = e.pageX - offset.left;
+                y = e.pageY - offset.top;
+                if (seed.hover(x, y)) {
+                    hold = 0;
+                    canvas.unbind("click");
+                    canvas.unbind("mousemove");
+                    canvas.removeClass('hand');
+                }
+            }).mousemove(function (e) {
+                var offset = canvas.offset(), x, y;
+                x = e.pageX - offset.left;
+                y = e.pageY - offset.top;
+                canvas.toggleClass('hand', seed.hover(x, y));
+            });
+
+            var seedAnimate = eval(Jscex.compile("async", function () {
+                seed.draw();
+                while (hold) {
+                    $await(Jscex.Async.sleep(10));
+                }
+                while (seed.canScale()) {
+                    seed.scale(0.95);
+                    $await(Jscex.Async.sleep(10));
+                }
+                while (seed.canMove()) {
+                    seed.move(0, 2);
+                    foot.draw();
+                    $await(Jscex.Async.sleep(10));
+                }
+            }));
+
+            var growAnimate = eval(Jscex.compile("async", function () {
+                do {
+                    tree.grow();
+                    $await(Jscex.Async.sleep(10));
+                } while (tree.canGrow());
+            }));
+
+            var flowAnimate = eval(Jscex.compile("async", function () {
+                do {
+                    tree.flower(2);
+                    $await(Jscex.Async.sleep(10));
+                } while (tree.canFlower());
+            }));
+
+            var moveAnimate = eval(Jscex.compile("async", function () {
+                tree.snapshot("p1", 240, 0, 610, 680);
+                while (tree.move("p1", 500, 0)) {
+                    foot.draw();
+                    $await(Jscex.Async.sleep(10));
+                }
+                foot.draw();
+                tree.snapshot("p2", 500, 0, 610, 680);
+
+                // 会有闪烁不得意这样做, (＞﹏＜)
+                canvas.parent().css("background", "url(" + tree.toDataURL('image/png') + ")");
+                canvas.css("background", "#ffe");
+                $await(Jscex.Async.sleep(300));
+                canvas.css("background", "none");
+            }));
+
+            // 控制树动画循环的标志
+            var treeAnimationRunning = true;
+
+            var jumpAnimate = eval(Jscex.compile("async", function () {
+                var ctx = tree.ctx;
+                var jumpCount = 0;
+                var maxJumps = 200; // 跳跃200次后继续运行
+                while (jumpCount < maxJumps) {
+                    if (!treeAnimationRunning) break;
+                    tree.ctx.clearRect(0, 0, width, height);
+                    tree.jump();
+                    foot.draw();
+                    jumpCount++;
+                    $await(Jscex.Async.sleep(25));
+                }
+                // 跳跃完成后，继续循环显示树动画，直到文字显示完成
+                while (treeAnimationRunning) {
+                    tree.ctx.clearRect(0, 0, width, height);
+                    tree.jump();
+                    foot.draw();
+                    $await(Jscex.Async.sleep(25));
+                }
+            }));
+
+            var textAnimate = eval(Jscex.compile("async", function () {
+                var together = new Date();
+                together.setFullYear(2009, 10, 23);      //时间年月日
+                together.setHours(16);            //小时  
+                together.setMinutes(53);          //分钟
+                together.setSeconds(0);         //秒前一位
+                together.setMilliseconds(2);        //秒第二位
+
+                // 在文字显示期间更新时钟
+                while ($("#main").is(":visible") && $("#code").is(":visible")) {
+                    timeElapse(together);
+                    $await(Jscex.Async.sleep(1000));
+                }
+            }));
+
+            // 计算文字的实际字符数（不包括HTML标签）
+            function getTextCharCount() {
+                var html = $("#code").html();
+                // 移除HTML标签，只计算文本字符
+                var text = html.replace(/<[^>]*>/g, '');
+                // 计算中文字符和标点符号
+                return text.length;
+            }
+
+            // 显示文字的动画（在树动画进行时）
+            var showTextDuringTree = eval(Jscex.compile("async", function () {
+                // 等待树动画开始一段时间后，开始显示文字
+                $await(Jscex.Async.sleep(2000));
+
+                // 显示文字区域（与树动画同时显示）
+                $("#main").show();
+                $("#code").show();
+
+                // 保存原始HTML并计算字符数
+                var originalHtml = $("#code").html();
+                var charCount = getTextCharCount();
+
+                // 重置文字内容并开始打字机效果
+                $("#code").html(originalHtml).typewriter();
+                $("#clock-box").fadeIn(500);
+
+                // 计算文字显示完成的时间（每个字符75ms）
+                var waitTime = charCount * 75 + 1000; // 等待文字完全显示
+                $await(Jscex.Async.sleep(waitTime));
+
+                // 文字显示完成后，停止树动画并淡出
+                // 停止jumpAnimate的循环
+                treeAnimationRunning = false;
+                canvas.fadeOut(1000);
+                $await(Jscex.Async.sleep(1000));
+
+                // 清空屏幕，显示新按钮和箭头
+                $("#main").fadeOut(500, function () {
+                    // 使用setTimeout确保fadeOut完成后再显示按钮
+                    setTimeout(function () {
+                        // 使用fadeIn显示按钮和箭头
+                        $("#nextButton").fadeIn(1000).addClass("show");
+                        $("#arrowToButton").fadeIn(1000).addClass("show");
+                    }, 100);
+                });
+            }));
+
+            var runAsync = eval(Jscex.compile("async", function () {
+                // 隐藏按钮
+                $("#startButton").fadeOut(500);
+                $await(Jscex.Async.sleep(500));
+
+                // 先显示树动画
+                canvas.show();
+                $await(seedAnimate());
+                $await(growAnimate());
+                $await(flowAnimate());
+                $await(moveAnimate());
+
+                // 开始跳跃动画（会一直循环）
+                jumpAnimate().start();
+
+                // 在树动画进行时，开始显示文字
+                showTextDuringTree().start();
+                // 在文字显示期间更新时钟
+                textAnimate().start();
+            }));
+
+            // 初始隐藏所有内容
+            $(document).ready(function () {
+                // 检测微信环境并优化资源加载
+                var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
+                // 优化图片加载（处理中文文件名）
+                if (isWeChat) {
+                    $('img').each(function () {
+                        var $img = $(this);
+                        var originalSrc = $img.attr('src');
+                        if (originalSrc && /[\u4e00-\u9fa5]/.test(originalSrc)) {
+                            try {
+                                var encodedSrc = encodeResourcePath(originalSrc);
+                                $img.attr('src', encodedSrc);
+                            } catch (e) {
+                                console.log('图片路径编码失败，使用原路径');
+                            }
+                        }
+                    });
+                }
+
+                $("#code").hide();
+                canvas.hide();
+                $("#main").hide();
+                $("#nextButton").hide();
+                $("#arrowToButton").hide();
+
+                // 点击开始按钮后开始动画
+                $("#startButton").click(function () {
+                    $("#main").show();
+                    // 尝试播放音乐
+                    var audio = document.getElementById('bgMusic');
+                    if (audio) {
+                        audio.play().catch(function (err) {
+                            console.log('播放失败:', err);
+                        });
+                    }
+                    // 重置树动画标志
+                    treeAnimationRunning = true;
+                    // 开始动画序列
+                    runAsync().start();
+                });
+
+                // 点击新按钮后显示便利贴
+                $("#nextButton").click(function () {
+                    // 隐藏按钮和箭头
+                    $("#nextButton").removeClass("show").fadeOut(500);
+                    $("#arrowToButton").removeClass("show").fadeOut(500);
+                    // 显示便利贴动画
+                    setTimeout(function () {
+                        initCardWall();
+                    }, 500);
+                });
+            });
+        })();
+
+        // 便签墙动画代码
+        function initCardWall() {
+            const board = document.getElementById('board');
+            if (!board) return;
+
+            board.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            const messages = [
+                '今天吃到美食了吗',
+                '天天开心！',
+                '今天辛苦啦',
+                '早点休息',
+                '今天吃青芒了没',
+                '加油，你可以的',
+                '烦恼都消散',
+                '啥时候吃螺狮粉',
+                '愿所有烦恼都消失',
+                '适当歇歇',
+                '梦想总会实现',
+                '天气冷了，多穿衣服',
+                '记得给自己放松',
+                '你有可乐喝吗',
+                '今天也要好好爱自己',
+                '适当休息一下',
+                '这很好了'
+            ];
+
+            const colors = [
+                '#fff0f5',  // 淡粉红
+                '#ffe4e1',  // 淡玫瑰色
+                '#fff5ee',  // 贝壳白
+                '#ffe8e8',  // 淡粉色
+                '#fff0f5',  // 淡粉红
+                '#ffeef0',  // 淡粉红
+                '#fff5f5',  // 淡粉白
+                '#ffe8f0'   // 淡粉紫
+            ];
+
+            const cardStates = new WeakMap();
+            const MAXIMIZED_LAYER = 1000000;
+            let activeMaximizedCard = null;
+            const pointerMediaQuery = window.matchMedia('(pointer: coarse)');
+            let isMobile = pointerMediaQuery.matches || window.innerWidth <= 768;
+            let maxCards = isMobile ? 120 : 180;
+            const initialCardCount = isMobile ? 18 : 30;
+            let spawnInterval = isMobile ? 700 : 400;
+            let zIndexCursor = 200;
+            let spawnTimer = null;
+
+            document.body.classList.toggle('is-mobile', isMobile);
+
+            function randomFrom(array) {
+                return array[Math.floor(Math.random() * array.length)];
+            }
+
+            function clamp(value, min, max) {
+                return Math.min(Math.max(value, min), max);
+            }
+
+            function applyTransform(card, state) {
+                const scale = state.scale ?? 1;
+                const angle = state.angle ?? 0;
+                card.style.transform = `scale(${scale}) rotate(${angle}deg)`;
+            }
+
+            function bringToFront(card) {
+                if (card === activeMaximizedCard) {
+                    card.style.zIndex = MAXIMIZED_LAYER;
+                    return;
+                }
+
+                zIndexCursor += 1;
+                if (activeMaximizedCard && zIndexCursor >= MAXIMIZED_LAYER) {
+                    zIndexCursor = MAXIMIZED_LAYER - 1;
+                }
+
+                card.style.zIndex = zIndexCursor;
+            }
+
+            function updateBodyMaximizedState() {
+                document.body.classList.toggle(
+                    'has-maximized-card',
+                    Boolean(activeMaximizedCard)
+                );
+            }
+
+            function scheduleNextSpawn() {
+                clearTimeout(spawnTimer);
+                spawnTimer = setTimeout(() => {
+                    if (!document.hidden) {
+                        createCard();
+                    }
+                    scheduleNextSpawn();
+                }, spawnInterval);
+            }
+
+            function syncMobileMode() {
+                const nextIsMobile = pointerMediaQuery.matches || window.innerWidth <= 768;
+                if (nextIsMobile === isMobile) return;
+
+                isMobile = nextIsMobile;
+                maxCards = isMobile ? 120 : 180;
+                spawnInterval = isMobile ? 700 : 400;
+                document.body.classList.toggle('is-mobile', isMobile);
+                scheduleNextSpawn();
+            }
+
+            function handleBoardClick(event) {
+                const control = event.target.closest('.control');
+                if (!control) return;
+
+                const card = control.closest('.card');
+                if (!card || !board.contains(card)) return;
+
+                event.preventDefault();
+
+                if (control.classList.contains('close')) {
+                    closeCard(card);
+                } else if (control.classList.contains('minimize')) {
+                    minimizeCard(card);
+                } else if (control.classList.contains('maximize')) {
+                    toggleMaximize(card);
+                }
+            }
+
+            function handleBoardPointerDown(event) {
+                const card = event.target.closest('.card');
+                if (!card || !board.contains(card)) return;
+
+                const control = event.target.closest('.control');
+                const header = event.target.closest('.card-header');
+                const pointerType = event.pointerType || 'mouse';
+                const isPrimaryPointer = event.isPrimary !== false;
+
+                if (
+                    header &&
+                    !control &&
+                    pointerType !== 'touch' &&
+                    isPrimaryPointer
+                ) {
+                    startDrag(event, card);
+                    return;
+                }
+
+                bringToFront(card);
+            }
+
+            function handleBoardDoubleClick(event) {
+                const header = event.target.closest('.card-header');
+                if (!header || event.target.closest('.control')) return;
+
+                const card = header.closest('.card');
+                if (!card || !board.contains(card)) return;
+
+                toggleMaximize(card);
+            }
+
+            board.addEventListener('click', handleBoardClick);
+            board.addEventListener('pointerdown', handleBoardPointerDown);
+            board.addEventListener('dblclick', handleBoardDoubleClick);
+
+            function closeCard(card) {
+                const state = cardStates.get(card);
+                if (!state || state.closing) return;
+                if (card === activeMaximizedCard) {
+                    activeMaximizedCard = null;
+                    updateBodyMaximizedState();
+                }
+                state.closing = true;
+                state.scale = 0.1;
+                card.style.opacity = '0';
+                applyTransform(card, state);
+
+                const handleTransitionEnd = event => {
+                    if (event.propertyName === 'opacity') {
+                        card.removeEventListener('transitionend', handleTransitionEnd);
+                        card.remove();
+                    }
+                };
+
+                card.addEventListener('transitionend', handleTransitionEnd);
+            }
+
+            function minimizeCard(card) {
+                const state = cardStates.get(card);
+                if (!state || state.closing) return;
+
+                const runMinimize = () => {
+                    state.closing = true;
+                    bringToFront(card);
+                    const bottom = Math.max(window.innerHeight - 24, 0);
+                    const targetLeft = clamp(
+                        state.left,
+                        16,
+                        Math.max(window.innerWidth - card.offsetWidth - 16, 16)
+                    );
+
+                    state.left = targetLeft;
+                    state.top = bottom;
+                    state.scale = 0.1;
+                    state.angle = 0;
+                    card.style.left = `${targetLeft}px`;
+                    card.style.top = `${bottom}px`;
+                    card.style.opacity = '0.35';
+                    applyTransform(card, state);
+
+                    const handleTransitionEnd = event => {
+                        if (event.propertyName === 'transform') {
+                            card.removeEventListener('transitionend', handleTransitionEnd);
+                            card.remove();
+                        }
+                    };
+
+                    card.addEventListener('transitionend', handleTransitionEnd);
+                };
+
+                if (state.maximized) {
+                    restoreFromMaximize(card, state);
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(runMinimize);
+                    });
+                    return;
+                }
+
+                runMinimize();
+            }
+
+            function toggleMaximize(card) {
+                const state = cardStates.get(card);
+                if (!state || state.closing) return;
+
+                if (state.maximized) {
+                    restoreFromMaximize(card, state);
+                } else {
+                    maximizeCard(card, state);
+                }
+            }
+
+            function maximizeCard(card, state) {
+                if (activeMaximizedCard && activeMaximizedCard !== card) {
+                    const activeState = cardStates.get(activeMaximizedCard);
+                    if (activeState) {
+                        restoreFromMaximize(activeMaximizedCard, activeState);
+                    }
+                }
+
+                state.beforeMaximize = {
+                    left: state.left,
+                    top: state.top,
+                    scale: state.scale ?? 1,
+                    angle: state.angle ?? 0,
+                    width: card.offsetWidth,
+                    height: card.offsetHeight,
+                    inlinePosition: card.style.position
+                };
+
+                card.classList.add('maximized');
+                card.style.position = 'fixed';
+                card.style.left = '0px';
+                card.style.top = '0px';
+                card.style.width = '100vw';
+                card.style.height = '100dvh';
+                card.style.borderRadius = '0';
+
+                state.left = 0;
+                state.top = 0;
+                state.scale = 1;
+                state.angle = 0;
+                applyTransform(card, state);
+                activeMaximizedCard = card;
+                bringToFront(card);
+                state.maximized = true;
+                updateBodyMaximizedState();
+            }
+
+            function restoreFromMaximize(card, state) {
+                const previous = state.beforeMaximize;
+                if (!previous) return;
+
+                card.classList.remove('maximized');
+                card.style.position = previous.inlinePosition || 'absolute';
+                card.style.left = `${previous.left}px`;
+                card.style.top = `${previous.top}px`;
+                card.style.width = `${previous.width}px`;
+                card.style.height = `${previous.height}px`;
+                card.style.borderRadius = isMobile ? (window.innerWidth <= 480 ? '8px' : '10px') : '12px';
+
+                state.left = previous.left;
+                state.top = previous.top;
+                state.scale = previous.scale ?? 1;
+                state.angle = previous.angle ?? state.angle ?? 0;
+                applyTransform(card, state);
+                state.maximized = false;
+                if (activeMaximizedCard === card) {
+                    activeMaximizedCard = null;
+                    updateBodyMaximizedState();
+                }
+                bringToFront(card);
+                setTimeout(() => {
+                    if (!state.maximized) {
+                        card.style.width = '';
+                        card.style.height = '';
+                        card.style.borderRadius = '';
+                        if (previous.inlinePosition) {
+                            card.style.position = previous.inlinePosition;
+                        } else {
+                            card.style.position = '';
+                        }
+                        state.beforeMaximize = null;
+                    }
+                }, 360);
+            }
+
+            function startDrag(event, card) {
+                const control = event.target.closest('.control');
+                if (control) return;
+
+                const state = cardStates.get(card);
+                if (!state || state.closing || state.maximized) return;
+
+                event.preventDefault();
+                bringToFront(card);
+
+                const header = card.querySelector('.card-header');
+                card.classList.add('dragging');
+                header.classList.add('dragging');
+
+                state.dragging = true;
+                state.dragOffsetX = event.clientX - state.left;
+                state.dragOffsetY = event.clientY - state.top;
+
+                let dragFrame = null;
+                let pendingLeft = state.left;
+                let pendingTop = state.top;
+
+                const commitDrag = () => {
+                    dragFrame = null;
+                    const maxLeft = Math.max(window.innerWidth - card.offsetWidth, 0);
+                    const maxTop = Math.max(window.innerHeight - card.offsetHeight, 0);
+                    state.left = clamp(pendingLeft, -card.offsetWidth * 0.4, maxLeft);
+                    state.top = clamp(pendingTop, -card.offsetHeight * 0.4, maxTop);
+                    card.style.left = `${state.left}px`;
+                    card.style.top = `${state.top}px`;
+                };
+
+                const handlePointerMove = moveEvent => {
+                    if (!state.dragging) return;
+
+                    pendingLeft = moveEvent.clientX - state.dragOffsetX;
+                    pendingTop = moveEvent.clientY - state.dragOffsetY;
+                    if (dragFrame === null) {
+                        dragFrame = requestAnimationFrame(commitDrag);
+                    }
+                };
+
+                const handlePointerUp = () => {
+                    state.dragging = false;
+                    card.classList.remove('dragging');
+                    header.classList.remove('dragging');
+                    if (dragFrame !== null) {
+                        cancelAnimationFrame(dragFrame);
+                        commitDrag();
+                    }
+                    document.removeEventListener('pointermove', handlePointerMove);
+                    document.removeEventListener('pointerup', handlePointerUp);
+                };
+
+                document.addEventListener('pointermove', handlePointerMove);
+                document.addEventListener('pointerup', handlePointerUp);
+            }
+
+            function createCard() {
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const color = randomFrom(colors);
+                const angleRange = isMobile ? 6 : 10;
+                const angle = (Math.random() - 0.5) * angleRange;
+                const entryScale = isMobile ? 0.8 : 0.65;
+                const cardWidth = isMobile ? 180 : 220;
+                const cardHeight = isMobile ? 130 : 140;
+                const horizontalMargin = isMobile ? 12 : 16;
+                const verticalMargin = isMobile ? 12 : 20;
+                const left =
+                    horizontalMargin +
+                    Math.random() *
+                    Math.max(window.innerWidth - cardWidth - horizontalMargin * 2, 0);
+                const top =
+                    verticalMargin +
+                    Math.random() *
+                    Math.max(window.innerHeight - cardHeight - verticalMargin * 2, 0);
+
+                card.style.background = color;
+                card.style.left = `${left}px`;
+                card.style.top = `${top}px`;
+                card.style.opacity = '0';
+                if (activeMaximizedCard && zIndexCursor >= MAXIMIZED_LAYER - 2) {
+                    zIndexCursor = MAXIMIZED_LAYER - 2;
+                }
+                card.style.zIndex = ++zIndexCursor;
+
+                card.innerHTML = `
+                <div class="card-header">
+                    <div class="window-controls">
+                        <button class="control close" type="button" aria-label="关闭"></button>
+                        <button class="control minimize" type="button" aria-label="最小化"></button>
+                        <button class="control maximize" type="button" aria-label="最大化"></button>
+                    </div>
+                    <div class="card-title">温馨提示</div>
+                </div>
+                <div class="card-body">${randomFrom(messages)}</div>
+            `;
+
+                const state = {
+                    angle,
+                    scale: entryScale,
+                    left,
+                    top,
+                    maximized: false,
+                    closing: false
+                };
+
+                cardStates.set(card, state);
+                applyTransform(card, state);
+                board.appendChild(card);
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        state.scale = 1;
+                        applyTransform(card, state);
+                        card.style.opacity = '1';
+                    });
+                });
+
+                if (board.children.length > maxCards) {
+                    const oldest = board.firstElementChild;
+                    if (oldest && oldest !== card) {
+                        oldest.remove();
+                    }
+                }
+            }
+
+            // 延迟启动，让过渡更自然
+            setTimeout(function () {
+                for (let i = 0; i < initialCardCount; i++) {
+                    setTimeout(createCard, i * (isMobile ? 60 : 40));
+                }
+
+                scheduleNextSpawn();
+
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        scheduleNextSpawn();
+                    }
+                });
+
+                if (typeof pointerMediaQuery.addEventListener === 'function') {
+                    pointerMediaQuery.addEventListener('change', syncMobileMode);
+                } else if (typeof pointerMediaQuery.addListener === 'function') {
+                    pointerMediaQuery.addListener(syncMobileMode);
+                }
+
+                window.addEventListener('resize', syncMobileMode);
+            }, 500);
+        }
+    </script>
+
+</body>
+
+</html>
